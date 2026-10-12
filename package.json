@@ -17,7 +17,7 @@
   },
   "dependencies": {
     "@opencode/plugin": "^2.0.27",
-    "aula-f75-max-screen": "github:rexdotsh/aula-f75-max-screen"
+    "aula-f75-max-screen": "github:rexdotsh/aula-f75-max-screen#main"
   },
   "devDependencies": {
     "@types/bun": "^1.4.3",

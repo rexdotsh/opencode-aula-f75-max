@@ -15,6 +15,10 @@ export interface IndicatorOptions {
 }
 
 const RETRY_MS = 5000;
+// A keyboard that keeps refusing a status is left alone until the status changes, rather than retried forever.
+const MAX_ATTEMPTS = 3;
+
+type Outcome = 'shown' | 'missing' | 'failed';
 
 function tint(color: Rgb): Partial<Record<Key, Rgb>> {
   return Object.fromEntries(Object.keys(KEYS).map((key) => [key, color]));
@@ -23,7 +27,7 @@ function tint(color: Rgb): Partial<Record<Key, Rgb>> {
 /**
  * Shows the latest status on the keyboard, one change at a time. Keys follow every change at once; the screen only
  * takes a status it is configured for, once that status has held for the settle time. A keyboard that is not plugged
- * in is skipped until the next change.
+ * in is looked for every few seconds; one that fails is retried a few times, then left until the status changes.
  */
 export class Indicator {
   readonly #options: IndicatorOptions;
@@ -37,8 +41,7 @@ export class Indicator {
   #closed = false;
   #retry: ReturnType<typeof setTimeout> | undefined;
   #missing = false;
-  /** An upload failed partway, so the keyboard may be stuck on its progress overlay. */
-  #stalled = false;
+  #attempts = 0;
 
   constructor(options: IndicatorOptions) {
     this.#options = options;
@@ -47,6 +50,7 @@ export class Indicator {
   show(status: Status): void {
     if (this.#closed || status === this.#wanted) return;
     this.#wanted = status;
+    this.#attempts = 0;
     this.#interrupt?.();
     this.#kick();
   }
@@ -69,12 +73,15 @@ export class Indicator {
       const status = this.#wanted;
       if (status === 'idle' || (!this.#keysDue(status) && !this.#screenDue(status))) return;
       // oxlint-disable-next-line no-await-in-loop -- the keyboard takes one change at a time
-      if (!(await this.#apply(status))) {
-        // An interrupted upload leaves the keyboard on its progress screen, and an unplugged keyboard may come back.
-        clearTimeout(this.#retry);
-        this.#retry = setTimeout(() => this.#kick(), RETRY_MS);
+      const outcome = await this.#apply(status);
+      if (outcome === 'shown') continue;
+      if (outcome === 'failed' && ++this.#attempts >= MAX_ATTEMPTS) {
+        log(`giving up on ${status} after ${MAX_ATTEMPTS} attempts, until the status changes`);
         return;
       }
+      clearTimeout(this.#retry);
+      this.#retry = setTimeout(() => this.#kick(), RETRY_MS);
+      return;
     }
   }
 
@@ -86,14 +93,13 @@ export class Indicator {
     return this.#options.screen.has(status) && this.#screen !== status;
   }
 
-  /** Shows `status`, or returns false when the keyboard is unavailable; the pump retries shortly. */
-  async #apply(status: Shown): Promise<boolean> {
+  async #apply(status: Shown): Promise<Outcome> {
     try {
       const keyboard = (this.#keyboard ??= await Keyboard.open());
       if (!keyboard) {
-        if (!this.#missing) log('keyboard not plugged in; retrying every 5s');
+        if (!this.#missing) log('keyboard not plugged in; looking for it every 5s');
         this.#missing = true;
-        return false;
+        return 'missing';
       }
       this.#missing = false;
       if (this.#keysDue(status)) {
@@ -103,21 +109,16 @@ export class Indicator {
         this.#keys = status;
         log(`keys ${status}`);
       }
-      if (!this.#screenDue(status) || !(await this.#held(status))) return true;
-      // An interrupted upload can leave the keyboard on its progress overlay through later uploads; changing pages
-      // clears it, and the clock sync is the one page change the protocol has.
-      if (this.#stalled) await keyboard.syncClock();
+      if (!this.#screenDue(status) || !(await this.#held(status))) return 'shown';
       const started = performance.now();
       await keyboard.upload(LOOKS[status].screen);
-      this.#stalled = false;
       this.#screen = status;
       log(`screen ${status} in ${Math.round(performance.now() - started)}ms`);
-      return true;
+      return 'shown';
     } catch (error) {
-      log(`showing ${status} failed; retrying in 5s`, error);
-      this.#stalled = true;
+      log(`showing ${status} failed`, error);
       await this.#disconnect();
-      return false;
+      return 'failed';
     }
   }
 

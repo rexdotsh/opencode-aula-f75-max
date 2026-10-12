@@ -1,16 +1,8 @@
 import { Plugin } from '@opencode/plugin';
 import { track } from './events';
-import { Indicator, type IndicatorOptions } from './indicator';
+import { Indicator } from './indicator';
+import { options } from './options';
 import { Tracker } from './status';
-
-function options(raw: Readonly<Record<string, unknown>>): IndicatorOptions {
-  const { keys = true, brightness = 5 } = raw;
-  if (typeof keys !== 'boolean') throw new TypeError('aula-f75-max: `keys` must be true or false');
-  if (!(typeof brightness === 'number' && Number.isInteger(brightness) && brightness >= 0 && brightness <= 5)) {
-    throw new RangeError('aula-f75-max: `brightness` must be a whole number from 0 to 5');
-  }
-  return { keys, brightness };
-}
 
 interface Shared {
   tracker: Tracker;

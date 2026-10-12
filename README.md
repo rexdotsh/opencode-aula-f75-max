@@ -31,5 +31,7 @@ Run `opencode reload` to load it. (On Windows, OpenCode 2.0.26 ignores local pat
 
 - `keys` (default `true`): tint every key with the status colour. This replaces the keyboard's lighting effect; pick yours again with the knob.
 - `brightness` (default `5`): key brightness, 0-5.
+- `screen` (default `["needs-you", "done", "error"]`): the statuses that update the screen. `true` for all of them, `false` to leave the screen alone and use the keys only.
+- `settle` (default `2500`): how long, in milliseconds, a status must hold before the screen shows it.
 
-Each screen change shows the keyboard's own progress bar for about 1.5s; key colours change in about 70ms.
+Every screen change shows the keyboard's own progress bar for about 1.5s; the firmware has no way around it. Key colours change in about 70ms, so the keys follow every change at once and the screen only takes the statuses worth a flash, once they have settled.

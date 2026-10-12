@@ -24,7 +24,8 @@ Bun is the only package manager and script runner. Formatting is oxfmt and linti
 src/status.ts     Tracker: folds every session into one status, most urgent first
 src/events.ts     maps OpenCode events onto the tracker
 src/look.ts       each status's screen and key tint
-src/indicator.ts  drives the keyboard: keys first, then the screen, one change at a time
+src/indicator.ts  drives the keyboard: keys at once, the screen once a status settles
+src/options.ts    the plugin options, validated when it loads
 src/index.ts      the plugin: subscribes to events and shares one tracker and indicator across instances
 scripts           previews
 test              bun tests
@@ -36,7 +37,7 @@ test              bun tests
 - OpenCode loads the plugin once per location, each from its own copy of the module, and every instance receives every event. All copies in the process share one tracker and one indicator through `globalThis.opencodeAulaF75Max`: two drivers would interleave packets and the keyboard rejects them.
 - Runs are tracked from `session.execution.*`; `session.status` is handled too, but OpenCode 2.0.26 does not emit it for runs.
 - The plugin never throws into OpenCode over the keyboard. A missing or failing keyboard is logged and retried on the next status change.
-- Uploads show the keyboard's own progress screen for about 1.5s, so the screen is only uploaded for a status that has held for a moment, and never for the same status twice. Keys change first; they take about 70ms.
+- Uploads show the keyboard's own progress screen for about 1.5s, so the screen only takes the statuses in the `screen` option, once they have held for `settle`, and never the same status twice. Keys follow every change at once (about 70ms); a status change cuts the settle wait short, so keys never wait for it.
 - Key tinting replaces the keyboard's own lighting effect and cannot restore it; it is the `keys` option, and the user restores their effect with the knob.
 
 ## Code standards, testing and workflow

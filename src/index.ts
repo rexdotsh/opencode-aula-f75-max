@@ -1,4 +1,7 @@
 import { Plugin } from '@opencode/plugin';
+import { readdirSync, statSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { track } from './events';
 import { Indicator } from './indicator';
 import { log } from './log';
@@ -6,6 +9,7 @@ import { options } from './options';
 import { Tracker } from './status';
 
 interface Shared {
+  build: number;
   tracker: Tracker;
   indicator: Indicator;
   users: number;
@@ -19,14 +23,30 @@ declare global {
   var opencodeAulaF75Max: Shared | undefined;
 }
 
+// A reload does not always unload every instance, so a driver from older code can outlive it. Copies of the same
+// code share a build, the newest change to the plugin's source, and a newer build replaces an older driver.
+const SOURCE = dirname(fileURLToPath(import.meta.url));
+const BUILD = Math.max(...readdirSync(SOURCE).map((file) => statSync(join(SOURCE, file)).mtimeMs));
+
+function driver(ctx: Plugin.Context): Shared {
+  const existing = globalThis.opencodeAulaF75Max;
+  if (existing?.build === BUILD) return existing;
+  if (existing) {
+    log('replacing the driver from an older build');
+    void existing.indicator.close();
+  }
+  return (globalThis.opencodeAulaF75Max = {
+    build: BUILD,
+    tracker: new Tracker(),
+    indicator: new Indicator(options(ctx.options)),
+    users: 0,
+  });
+}
+
 export default Plugin.define({
   id: 'aula-f75-max',
   setup(ctx) {
-    const current = (globalThis.opencodeAulaF75Max ??= {
-      tracker: new Tracker(),
-      indicator: new Indicator(options(ctx.options)),
-      users: 0,
-    });
+    const current = driver(ctx);
     current.users++;
     log(`loaded for ${ctx.location.directory} (${current.users} active)`);
     const controller = new AbortController();

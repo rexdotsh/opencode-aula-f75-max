@@ -1,4 +1,5 @@
 import { KEYS, Keyboard, type Key, type Rgb } from 'aula-f75-max-screen';
+import { log } from './log';
 import { LOOKS, type Shown } from './look';
 import type { Status } from './status';
 
@@ -35,6 +36,9 @@ export class Indicator {
   #interrupt: (() => void) | undefined;
   #closed = false;
   #retry: ReturnType<typeof setTimeout> | undefined;
+  #missing = false;
+  /** An upload failed partway, so the keyboard may be stuck on its progress overlay. */
+  #stalled = false;
 
   constructor(options: IndicatorOptions) {
     this.#options = options;
@@ -82,23 +86,36 @@ export class Indicator {
     return this.#options.screen.has(status) && this.#screen !== status;
   }
 
-  /** Shows `status`, or returns false when the keyboard is unavailable; the next change tries again. */
+  /** Shows `status`, or returns false when the keyboard is unavailable; the pump retries shortly. */
   async #apply(status: Shown): Promise<boolean> {
     try {
       const keyboard = (this.#keyboard ??= await Keyboard.open());
-      if (!keyboard) return false;
+      if (!keyboard) {
+        if (!this.#missing) log('keyboard not plugged in; retrying every 5s');
+        this.#missing = true;
+        return false;
+      }
+      this.#missing = false;
       if (this.#keysDue(status)) {
         if (!this.#custom) await keyboard.customLighting(this.#options.brightness);
         this.#custom = true;
         await keyboard.setKeyColors(tint(LOOKS[status].tint));
         this.#keys = status;
+        log(`keys ${status}`);
       }
       if (!this.#screenDue(status) || !(await this.#held(status))) return true;
+      // An interrupted upload can leave the keyboard on its progress overlay through later uploads; changing pages
+      // clears it, and the clock sync is the one page change the protocol has.
+      if (this.#stalled) await keyboard.syncClock();
+      const started = performance.now();
       await keyboard.upload(LOOKS[status].screen);
+      this.#stalled = false;
       this.#screen = status;
+      log(`screen ${status} in ${Math.round(performance.now() - started)}ms`);
       return true;
     } catch (error) {
-      console.warn('aula-f75-max: keyboard update failed; reconnecting on the next change', error);
+      log(`showing ${status} failed; retrying in 5s`, error);
+      this.#stalled = true;
       await this.#disconnect();
       return false;
     }
@@ -123,6 +140,6 @@ export class Indicator {
     this.#custom = false;
     this.#keys = 'idle';
     this.#screen = 'idle';
-    await keyboard?.close().catch((error: unknown) => console.warn('aula-f75-max: closing the keyboard failed', error));
+    await keyboard?.close().catch((error: unknown) => log('closing the keyboard failed', error));
   }
 }

@@ -1,6 +1,7 @@
 import { Plugin } from '@opencode/plugin';
 import { track } from './events';
 import { Indicator } from './indicator';
+import { log } from './log';
 import { options } from './options';
 import { Tracker } from './status';
 
@@ -27,6 +28,7 @@ export default Plugin.define({
       users: 0,
     });
     current.users++;
+    log(`loaded for ${ctx.location.directory} (${current.users} active)`);
     const controller = new AbortController();
     void (async () => {
       for await (const event of ctx.event.subscribe({ signal: controller.signal })) {
@@ -35,11 +37,12 @@ export default Plugin.define({
         current.indicator.show(current.tracker.status);
       }
     })().catch((error: unknown) => {
-      if (!controller.signal.aborted) console.error('aula-f75-max: the event stream ended', error);
+      if (!controller.signal.aborted) log('the event stream ended', error);
     });
     // An aborted stream does not always end, so cleanup never waits for it: the driver must be released for reloads.
     return async () => {
       controller.abort();
+      log(`unloaded for ${ctx.location.directory}`);
       if (--current.users > 0) return;
       if (globalThis.opencodeAulaF75Max === current) globalThis.opencodeAulaF75Max = undefined;
       await current.indicator.close();

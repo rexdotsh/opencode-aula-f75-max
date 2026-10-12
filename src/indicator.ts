@@ -31,19 +31,21 @@ export class Indicator {
   #screen: Status = 'idle';
   #pumping: Promise<void> | undefined;
   #interrupt: (() => void) | undefined;
+  #closed = false;
 
   constructor(options: IndicatorOptions) {
     this.#options = options;
   }
 
   show(status: Status): void {
-    if (status === this.#wanted) return;
+    if (this.#closed || status === this.#wanted) return;
     this.#wanted = status;
     this.#interrupt?.();
     this.#pumping ??= this.#pump().finally(() => (this.#pumping = undefined));
   }
 
   async close(): Promise<void> {
+    this.#closed = true;
     this.#interrupt?.();
     await this.#pumping;
     await this.#disconnect();

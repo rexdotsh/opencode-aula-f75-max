@@ -28,19 +28,20 @@ export default Plugin.define({
     });
     current.users++;
     const controller = new AbortController();
-    const listening = (async () => {
+    void (async () => {
       for await (const event of ctx.event.subscribe({ signal: controller.signal })) {
+        if (controller.signal.aborted) return;
         track(current.tracker, event);
         current.indicator.show(current.tracker.status);
       }
     })().catch((error: unknown) => {
       if (!controller.signal.aborted) console.error('aula-f75-max: the event stream ended', error);
     });
+    // An aborted stream does not always end, so cleanup never waits for it: the driver must be released for reloads.
     return async () => {
       controller.abort();
-      await listening;
       if (--current.users > 0) return;
-      globalThis.opencodeAulaF75Max = undefined;
+      if (globalThis.opencodeAulaF75Max === current) globalThis.opencodeAulaF75Max = undefined;
       await current.indicator.close();
     };
   },

@@ -36,7 +36,8 @@ test              bun tests
 - Status is decided only in `Tracker`, from domain calls (`working`, `finished`, `failed`, `waiting`, `answered`, `closed`). `events.ts` is the only place that knows OpenCode's event shapes. Every tracker call is idempotent, because every plugin instance feeds the same events.
 - OpenCode loads the plugin once per location, each from its own copy of the module, and every instance receives every event. All copies in the process share one tracker and one indicator through `globalThis.opencodeAulaF75Max`: two drivers would interleave packets and the keyboard rejects them.
 - Runs are tracked from `session.execution.*`; `session.status` is handled too, but OpenCode 2.0.26 does not emit it for runs.
-- The plugin never throws into OpenCode over the keyboard. A missing or failing keyboard is logged and retried on the next status change.
+- The plugin never throws into OpenCode over the keyboard. A missing or failing keyboard is logged and the current status retried every 5s, so a screen left on its progress bar by an interrupted upload recovers, and a keyboard plugged back in shows the right status.
+- Other programs driving the keyboard (the CLI, scripts) take turns with the plugin through the library's lock file.
 - Uploads show the keyboard's own progress screen for about 1.5s, so the screen only takes the statuses in the `screen` option, once they have held for `settle`, and never the same status twice. Keys follow every change at once (about 70ms); a status change cuts the settle wait short, so keys never wait for it.
 - Key tinting replaces the keyboard's own lighting effect and cannot restore it; it is the `keys` option, and the user restores their effect with the knob.
 

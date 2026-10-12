@@ -433,7 +433,7 @@
 
     "ansi-styles": ["ansi-styles@6.2.3", "", {}, "sha512-4Dj6M28JB+oAH8kFkTLUo+a2jwOFkuqb3yucU0CANcRRUbxS0cP0nZYCGjcc3BNXwRIsUVmDGgzawme7zvJHvg=="],
 
-    "aula-f75-max-screen": ["aula-f75-max-screen@github:rexdotsh/aula-f75-max-screen#ed1f1db", { "dependencies": { "node-hid": "^3.4.0" } }, "rexdotsh-aula-f75-max-screen-ed1f1db", "sha512-jQMc4x06s2vlQCLRPed0caivIXPtZa4f5kMlvUSiGcTAgSPv8+E99+xPXl8idL8aCI/z9LTXj4MROgRaCHvnOQ=="],
+    "aula-f75-max-screen": ["aula-f75-max-screen@github:rexdotsh/aula-f75-max-screen#516757d", { "dependencies": { "node-hid": "^3.4.0" } }, "rexdotsh-aula-f75-max-screen-516757d", "sha512-UNZ+gg0d4LEPH/V3gOdmVnHjjyGGnqeoBUd8uFEuIGHJ8RmHdiMfV9G7TtVu9fNsxOwvWrd19rnIVoAB+3GrAw=="],
 
     "aws4fetch": ["aws4fetch@1.0.20", "", {}, "sha512-/djoAN709iY65ETD6LKCtyyEI04XIBP5xVvfmNxsEP0uJB5tyaGBztSryRr4HqMStr9R06PisQE7m9zDTXKu6g=="],
 

@@ -13,6 +13,8 @@ export interface IndicatorOptions {
   settle: number;
 }
 
+const RETRY_MS = 5000;
+
 function tint(color: Rgb): Partial<Record<Key, Rgb>> {
   return Object.fromEntries(Object.keys(KEYS).map((key) => [key, color]));
 }
@@ -32,6 +34,7 @@ export class Indicator {
   #pumping: Promise<void> | undefined;
   #interrupt: (() => void) | undefined;
   #closed = false;
+  #retry: ReturnType<typeof setTimeout> | undefined;
 
   constructor(options: IndicatorOptions) {
     this.#options = options;
@@ -41,14 +44,20 @@ export class Indicator {
     if (this.#closed || status === this.#wanted) return;
     this.#wanted = status;
     this.#interrupt?.();
-    this.#pumping ??= this.#pump().finally(() => (this.#pumping = undefined));
+    this.#kick();
   }
 
   async close(): Promise<void> {
     this.#closed = true;
+    clearTimeout(this.#retry);
     this.#interrupt?.();
     await this.#pumping;
     await this.#disconnect();
+  }
+
+  #kick(): void {
+    if (this.#closed) return;
+    this.#pumping ??= this.#pump().finally(() => (this.#pumping = undefined));
   }
 
   async #pump(): Promise<void> {
@@ -56,7 +65,12 @@ export class Indicator {
       const status = this.#wanted;
       if (status === 'idle' || (!this.#keysDue(status) && !this.#screenDue(status))) return;
       // oxlint-disable-next-line no-await-in-loop -- the keyboard takes one change at a time
-      if (!(await this.#apply(status))) return;
+      if (!(await this.#apply(status))) {
+        // An interrupted upload leaves the keyboard on its progress screen, and an unplugged keyboard may come back.
+        clearTimeout(this.#retry);
+        this.#retry = setTimeout(() => this.#kick(), RETRY_MS);
+        return;
+      }
     }
   }
 

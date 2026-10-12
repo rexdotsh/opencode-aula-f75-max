@@ -11,9 +11,15 @@ Shows OpenCode's status on an Aula F75 Max keyboard plugged in over USB:
 
 "Needs you" means a permission request or a question is waiting. With several sessions, the most urgent status wins.
 
-```sh
-opencode plugin add github:rexdotsh/opencode-aula-f75-max
+## Install
+
+Clone this repository and run `bun install`, then load it from OpenCode's global plugin folder with a one-line file, `~/.config/opencode/plugins/aula-f75-max.ts`:
+
+```ts
+export { default } from '/path/to/opencode-aula-f75-max/src/index.ts';
 ```
+
+Run `opencode reload` to load it. (On Windows, OpenCode 2.0.26 ignores local paths in the `plugins` config and `opencode plugin add github:…` fails to install the Git dependency, so the plugin folder is the way in for now.)
 
 ## Options
 

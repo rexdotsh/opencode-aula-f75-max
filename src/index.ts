@@ -12,14 +12,28 @@ function options(raw: Readonly<Record<string, unknown>>): IndicatorOptions {
   return { keys, brightness };
 }
 
-// OpenCode loads the plugin once per location and every instance sees the same events. One keyboard needs one
-// driver, so instances share it; tracking is idempotent, so the same event arriving twice changes nothing.
-let shared: { tracker: Tracker; indicator: Indicator; users: number } | undefined;
+interface Shared {
+  tracker: Tracker;
+  indicator: Indicator;
+  users: number;
+}
+
+// OpenCode loads the plugin once per location, each from its own copy of this module, and every instance sees the
+// same events. Concurrent drivers interleave packets and the keyboard rejects them, so all copies in the process
+// share one driver through a global; tracking is idempotent, so the same event arriving twice changes nothing.
+declare global {
+  // oxlint-disable-next-line no-var -- a global declaration has to be a var
+  var opencodeAulaF75Max: Shared | undefined;
+}
 
 export default Plugin.define({
   id: 'aula-f75-max',
   setup(ctx) {
-    const current = (shared ??= { tracker: new Tracker(), indicator: new Indicator(options(ctx.options)), users: 0 });
+    const current = (globalThis.opencodeAulaF75Max ??= {
+      tracker: new Tracker(),
+      indicator: new Indicator(options(ctx.options)),
+      users: 0,
+    });
     current.users++;
     const controller = new AbortController();
     const listening = (async () => {
@@ -34,7 +48,7 @@ export default Plugin.define({
       controller.abort();
       await listening;
       if (--current.users > 0) return;
-      shared = undefined;
+      globalThis.opencodeAulaF75Max = undefined;
       await current.indicator.close();
     };
   },

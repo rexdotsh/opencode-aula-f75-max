@@ -13,11 +13,15 @@ export function track(tracker: Tracker, event: OpenCodeEvent): void {
       if (event.data.status.type === 'idle') tracker.finished(event.data.sessionID);
       else tracker.working(event.data.sessionID);
       return;
-    case 'session.execution.failed':
-      tracker.failed(event.data.sessionID);
+    case 'session.execution.started':
+      tracker.working(event.data.sessionID);
       return;
+    case 'session.execution.succeeded':
     case 'session.execution.interrupted':
       tracker.finished(event.data.sessionID);
+      return;
+    case 'session.execution.failed':
+      tracker.failed(event.data.sessionID);
       return;
     case 'session.deleted':
       tracker.closed(event.data.sessionID);

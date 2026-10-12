@@ -1,0 +1,31 @@
+{
+  "name": "opencode-aula-f75-max",
+  "version": "0.1.0",
+  "description": "Shows OpenCode's status on the Aula F75 Max keyboard: its screen and key lights",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "preview": "bun scripts/preview.ts",
+    "check": "tsc -p .",
+    "lint": "oxlint --type-aware --deny-warnings",
+    "knip": "knip",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@opencode/plugin": "^2.0.27",
+    "aula-f75-max-screen": "github:rexdotsh/aula-f75-max-screen"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.3",
+    "knip": "^6.41.0",
+    "oxfmt": "^0.72.0",
+    "oxlint": "^1.87.0",
+    "oxlint-tsgolint": "^7.0.2004",
+    "typescript": "^7.0.2"
+  },
+  "packageManager": "bun@1.4.2"
+}

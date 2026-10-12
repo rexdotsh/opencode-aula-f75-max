@@ -2,7 +2,7 @@ import type { IndicatorOptions } from './indicator';
 import { LOOKS, type Shown } from './look';
 
 const DEFAULT_SCREEN: readonly Shown[] = ['needs-you', 'done', 'error'];
-const DEFAULT_SETTLE_MS = 2500;
+const DEFAULT_SETTLE_MS = 500;
 const ALL = Object.keys(LOOKS).filter(isShown);
 
 function isShown(value: unknown): value is Shown {
